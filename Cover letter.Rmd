@@ -1,0 +1,37 @@
+---
+title: |
+  |
+  | 
+  | \vspace{1cm}Manuscript Title: Collective Speech Among Addiction Treatment Organizations
+  | 
+  |
+author: |
+  | Gabriel Varela
+  | 1004 W Markham Ave, 27701, Durham, North-Carolina
+  | 917-861-9198
+  | gv42@duke.edu
+date: |
+  |       
+  | Relevant information: Fully reproducible paper is available through this [Github repository](https://github.com/paulcbauer/Writing_a_reproducable_paper_in_rmarkdown/)
+  | 
+  |
+output:
+  bookdown::pdf_document2:
+    toc: no
+    keep_tex: true
+    number_sections: false
+    extra_dependencies: rotating
+documentclass: article
+mainfont: Times New Roman
+sansfont: Times New Roman
+fontsize: 12pt
+geometry: margin=1in
+always_allow_html: yes
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\pagenumbering{gobble}

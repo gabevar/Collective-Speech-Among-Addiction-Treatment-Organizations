@@ -1,0 +1,901 @@
+---
+title: |
+  |
+  | 
+  | \vspace{1cm}Collective Speech Among Addiction Treatment Organizations
+  | 
+  |
+author: |
+  | Gabriel Varela
+  | Duke University
+date: |
+  |       
+  | April 28th, 2021
+  | 
+  |
+linestretch: 2
+colorlinks: true
+abstract: \noindent\setstretch{1}The present paper provides a template for a reproducible scientific paper written in R Markdown. Below I outline some of the "tricks"/code (e.g., referencing tables, sections etc.) I had to figure out to produce this document. The underlying files which produce this document can be downloaded [here](https://drive.google.com/drive/folders/1zJP3cNPrHN-gj0rcmbHQgg-XA0hqDXdd?usp=sharing). I think I got pretty far but there is always room for improvement and more automatization, in parallel to the incredible developments in R and Rstudio (bookdown etc.). I intend to update this file when I discover more convenient code (you can follow any updates through the corresponding [github repo](https://github.com/paulcbauer/Writing_a_reproducable_paper_in_rmarkdown/)).\vspace{.8cm}
+bibliography: references.bib
+csl: american-sociological-association.csl
+output:
+  bookdown::pdf_document2:
+    toc: no
+    keep_tex: true
+    number_sections: false
+mainfont: Times New Roman
+sansfont: Times New Roman
+fontsize: 12pt
+link-citations: true
+documentclass: article
+geometry: margin=1in
+always_allow_html: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = FALSE) # Use chache = TRUE if you want to speed up compilation
+knitr::opts_chunk$set(echo = FALSE) # Toggle on or off to show code chunks
+
+# A function to allow for showing some of the inline code
+rinline <- function(code){
+  html <- '<code  class="r">``` `r CODE` ```</code>'
+  sub("CODE", code, html)
+}
+```
+
+\clearpage
+
+<!-- \renewcommand{\baselinestretch}{0.5}\normalsize -->
+<!-- \tableofcontents -->
+<!-- \renewcommand{\baselinestretch}{1.1}\normalsize -->
+
+<!-- \clearpage -->
+
+# CODE
+
+```{r, message = F, warning = F}
+library(tidytext)
+library(tidyverse)
+library(textmineR)
+library(proxy)
+library(textstem)
+library(textclean)
+library(scales)
+library(igraph)
+library(stargazer)
+library(lme4)
+library(effects)
+library(standardize)
+library(quanteda)
+library(dotwhisker)
+```
+
+```{r, message = F, warning = F}
+change <- function(x) replace_na(x, 0)
+df <- read_csv('/Users/gabe/Documents/Classes/Second year paper/final_csv_test2.csv') %>%
+  drop_na(full_text) %>%
+  mutate_at(vars(21:242), funs(change)) %>% 
+  select(-ID) %>% 
+  rowid_to_column("ID") %>% 
+  mutate(ID = as.character(ID))
+```
+
+```{r}
+df <- df %>% mutate(pvtn = ifelse(ID == 2, 0, pvtn), # Fix those that have two ownership models
+                    pvtn = ifelse(ID == 120, 0, pvtn),
+                    pvtn = ifelse(ID == 121, 0, pvtn))
+
+df <- df %>% mutate(pvtn = ifelse(ID == 202, 1, pvtn), # Fix those that have none if I can find
+                    pvtp = ifelse(ID == 314, 1, pvtp),
+                    pvtn = ifelse(ID == 503, 1, pvtn),
+                    pvtn = ifelse(ID == 716, 1, pvtn),
+                    pvtn = ifelse(ID == 717, 1, pvtn),
+                    pvtn = ifelse(ID == 186, 1, pvtn))
+
+df <- df %>% filter(ID != 525 & ID != 596 & ID != 597) # Remove those I couldn't fix
+```
+
+```{r}
+public <- df %>% select(ID, ddf, ih, lccg, stg, tbg, vamc) %>% 
+  mutate(pub = Reduce("+",.[2:7])) %>% select(ID, pub)
+
+df <- df %>% left_join(public, by = "ID")
+```
+
+```{r}
+df_words <- df %>%
+  distinct(domain, .keep_all = T) %>% 
+  select(domain, full_text) %>% 
+  mutate(full_text = replace_contraction(full_text)) %>% # handle contractions
+  unnest_tokens(word, full_text) %>%  
+  mutate(word = gsub("'s","", word),
+         word = gsub("’s","", word)) %>%  # remove possessives
+  filter(!(nchar(word) < 3), # Remove small words
+         !str_detect(word, "[0-9]"), # Remove any tokens with numbers
+         !str_detect(word, "[._]"), # Remove tokens with a period or underscore
+         !str_detect(word, "[’']")) %>% # Remove leftover contractions
+  anti_join(stop_words) %>% # Remove default stop_words
+  mutate(word = textstem::lemmatize_words(word)) %>%  # Lemmatize
+  count(domain, word, sort = TRUE)
+```
+
+```{r, message = F}
+total_words <- df_words %>% 
+  group_by(domain) %>% 
+  summarize(total = sum(n))
+
+df_words <- left_join(df_words, total_words)
+```
+
+```{r}
+df_words <- df_words %>%
+  bind_tf_idf(word, domain, n)
+
+df_words <- df %>% select(domain, ID) %>% full_join(df_words, by = "domain")
+```
+
+```{r}
+df_dtm <- cast_sparse(df_words, row = ID, col = word, value = tf_idf)
+```
+
+```{r}
+df_dtm <- as.matrix(df_dtm)
+cosine_dtm <- simil(df_dtm, method = "cosine") 
+
+cosine_dtm_mat <- as.matrix(cosine_dtm)
+
+cosine_dtm_mat[cosine_dtm_mat > 0.99] <- NA # This turns the services that are part of the same org to NA
+```
+
+```{r}
+g <- graph_from_adjacency_matrix(cosine_dtm_mat, mode = "directed", weighted = T)
+edge <- as_data_frame(g)
+```
+
+```{r, warning = F}
+vars <- df %>% select(ct, hi, op, res, hid, hit, 
+                      od, odt, oit, omb, ort, rd, 
+                      rl, rs, pvtn, pvtp, pub) %>% names()
+
+res_list = list()
+for (x in vars) {
+  out <- df %>% select(ID, x)
+  
+  out_edge <- out %>% select(ID) %>% 
+    mutate(ID2 = ID) %>%
+    expand.grid() %>% 
+    left_join(out, by = c("ID" = "ID")) %>% 
+    left_join(out, by = c("ID2" = "ID")) %>% 
+    rename("var1" = paste0(x, ".x"), "var2" = paste0(x, ".y"),
+           "from" = "ID", "to" = "ID2") %>% 
+    mutate(weight = ifelse(var1 == 1 & var2 == 1, 1, 0)) %>%
+    select(from, to, weight) %>% 
+    mutate_if(is.integer, as.character)
+  
+  names(out_edge)[names(out_edge) == "weight"] <- paste(x, "_weight", sep = "")
+  
+  res_list[[length(res_list)+1]] = out_edge
+}
+```
+
+```{r}
+out <- df %>% select(ID, pvtn, pvtp)
+
+out_edge <- out %>% 
+  select(ID) %>% 
+  mutate(ID2 = ID) %>%
+  expand.grid() %>% 
+  left_join(out, by = c("ID" = "ID")) %>% 
+  left_join(out, by = c("ID2" = "ID")) %>% 
+  mutate(weight_1 = ifelse(pvtn.x == 1 & pvtp.y == 1, 1, 0),
+         weight_2 = ifelse(pvtp.x == 1 & pvtn.y == 1, 1, 0),
+         weight = ifelse(weight_1 == 1 | weight_2 == 1, 1, 0)) %>%
+  rename("from" = "ID", "to" = "ID2", "mix_weight" = "weight") %>% 
+  select(from, to, mix_weight) %>% 
+  mutate_if(is.integer, as.character)
+
+res_list[[length(res_list)+1]] = out_edge
+    
+```
+
+```{r}
+nyc_counties <- c("New York", "Kings","Bronx","Richmond","Queens")
+
+out <- df %>% select(ID, county) %>%
+  mutate(nyc_tag = ifelse(county %in% nyc_counties, 1, 0)) %>% select(ID, nyc_tag)
+
+out_edge <- out %>% 
+  select(ID) %>% 
+  mutate(ID2 = ID) %>%
+  expand.grid() %>% 
+  left_join(out, by = c("ID" = "ID")) %>% 
+  left_join(out, by = c("ID2" = "ID")) %>% 
+  mutate(nyc_weight = ifelse(nyc_tag.x == 1 & nyc_tag.y == 1, 1, 0)) %>%
+  rename("from" = "ID", "to" = "ID2") %>% 
+  select(from, to, nyc_weight) %>% 
+  mutate_if(is.integer, as.character) 
+
+res_list[[length(res_list)+1]] = out_edge
+```
+
+```{r}
+dist_df <- df %>% select(ID, longitude, latitude) %>% 
+  rename(name = ID, lat = latitude, lon = longitude)
+```
+
+```{r}
+ReplaceLowerOrUpperTriangle <- function(m, triangle.to.replace){
+   # If triangle.to.replace="lower", replaces the lower triangle of a square matrix with its upper triangle.
+   # If triangle.to.replace="upper", replaces the upper triangle of a square matrix with its lower triangle.
+
+   if (nrow(m) != ncol(m)) stop("Supplied matrix must be square.")
+   if      (tolower(triangle.to.replace) == "lower") tri <- lower.tri(m)
+   else if (tolower(triangle.to.replace) == "upper") tri <- upper.tri(m)
+   else stop("triangle.to.replace must be set to 'lower' or 'upper'.")
+   m[tri] <- t(m)[tri]
+   return(m)
+}
+
+GeoDistanceInMetresMatrix <- function(df.geopoints){
+   # Returns a matrix (M) of distances between geographic points.
+   # M[i,j] = M[j,i] = Distance between (df.geopoints$lat[i], df.geopoints$lon[i]) and
+   # (df.geopoints$lat[j], df.geopoints$lon[j]).
+   # The row and column names are given by df.geopoints$name.
+
+   GeoDistanceInMetres <- function(g1, g2){
+      # Returns a vector of distances. (But if g1$index > g2$index, returns zero.)
+      # The 1st value in the returned vector is the distance between g1[[1]] and g2[[1]].
+      # The 2nd value in the returned vector is the distance between g1[[2]] and g2[[2]]. Etc.
+      # Each g1[[x]] or g2[[x]] must be a list with named elements "index", "lat" and "lon".
+      # E.g. g1 <- list(list("index"=1, "lat"=12.1, "lon"=10.1), list("index"=3, "lat"=12.1, "lon"=13.2))
+      DistM <- function(g1, g2){
+         require("Imap")
+         return(ifelse(g1$index > g2$index, 0, gdist(lat.1=g1$lat, lon.1=g1$lon,
+                                                     lat.2=g2$lat, lon.2=g2$lon,
+                                                     units="m")))
+      }
+      return(mapply(DistM, g1, g2))
+   }
+
+   n.geopoints <- nrow(df.geopoints)
+
+   # The index column is used to ensure we only do calculations for the upper triangle of points
+   df.geopoints$index <- 1:n.geopoints
+
+   # Create a list of lists
+   list.geopoints <- by(df.geopoints[,c("index", "lat", "lon")], 1:n.geopoints,
+                        function(x){return(list(x))})
+
+   # Get a matrix of distances (in metres)
+   mat.distances <- ReplaceLowerOrUpperTriangle(outer(list.geopoints, list.geopoints,
+                                                      GeoDistanceInMetres), "lower")
+
+   # Set the row and column names
+   rownames(mat.distances) <- df.geopoints$name
+   colnames(mat.distances) <- df.geopoints$name
+
+   return(mat.distances)
+}
+```
+
+```{r, warning = F, message = F}
+dis_mat <- round(GeoDistanceInMetresMatrix(dist_df) / 1000) # Turn results of meter cells into kilometers
+# diag(dis_mat) <- 0
+# xy <- t(combn(colnames(dis_mat), 2))
+# dis_mat <- data.frame(xy, dist=dis_mat[xy])
+
+dis_df <- graph_from_adjacency_matrix(dis_mat, mode = "directed", weighted = T)
+dis_df <- as_data_frame(dis_df)
+dis_df <- dis_df %>% rename(dist_weight = weight)
+
+edge <- edge %>% 
+  left_join(dis_df, by = c("from", "to")) %>% 
+  mutate(dist_weight = replace_na(dist_weight, 0))
+```
+
+```{r}
+for (x in res_list) {
+  edge <- edge %>% left_join(x, by = c("from", "to"))
+}
+
+edge <- edge %>% mutate(across(dist_weight:nyc_weight, ~ ifelse(is.na(weight), NA, .)))
+
+edge_glmer <- edge %>%
+  mutate(across(dist_weight:nyc_weight, ~ ifelse(is.na(weight), NA, .))) %>% 
+  drop_na(weight) %>% 
+  mutate(dist_weight_scaled = as.numeric(scale(dist_weight))) %>%
+  mutate(quad_dist = dist_weight^2) %>% 
+  mutate(log_weight = log(weight)) %>% 
+  mutate(quad_scaled_dist = dist_weight_scaled^2)
+```
+
+```{r}
+edge_glmer_und <- graph.data.frame(edge_glmer)
+edge_glmer_und <- as.undirected(edge_glmer_und, mode = "collapse", edge.attr.comb = "first")
+edge_glmer_und <- as_data_frame(edge_glmer_und)
+```
+
+```{r}
+totals <- df_words %>% distinct(ID, total) %>% mutate(ID = as.character(ID))
+
+edge_glmer_und <- edge_glmer_und %>% left_join(totals, by = c("from" = "ID")) %>% 
+  left_join(totals, by = c("to" = "ID")) %>% 
+  mutate(mean_total = (total.x + total.y) / 2,
+         min_total = ifelse(total.x > total.y, total.y, total.x)) %>% 
+  rename(total_from = total.x, total_to = total.y) %>% 
+  mutate(mean_total_scaled = as.numeric(scale(mean_total)),
+         min_total_scaled = as.numeric(scale(min_total))) 
+```
+
+```{r}
+edge_glmer_und <- edge_glmer_und %>% 
+  left_join(select(df, ID, prop_est_race_white, prop_est_medicaid, prop_est_poverty), by = c("from" = "ID")) %>% 
+  left_join(select(df, ID, prop_est_race_white, prop_est_medicaid, prop_est_poverty), by = c("to" = "ID")) %>% 
+  rename(prop_est_race_white_from = prop_est_race_white.x, prop_est_medicaid_from = prop_est_medicaid.x, 
+         prop_est_poverty_from = prop_est_poverty.x, prop_est_race_white_to = prop_est_race_white.y, 
+         prop_est_medicaid_to = prop_est_medicaid.y, prop_est_poverty_to = prop_est_poverty.y) %>% 
+  mutate(prop_est_white_diff = abs(prop_est_race_white_from - prop_est_race_white_to),
+         prop_est_medicaid_diff = abs(prop_est_medicaid_from - prop_est_medicaid_to),
+         prop_est_poverty_diff = abs(prop_est_poverty_from - prop_est_poverty_to))
+```
+
+```{r}
+sobj6 <- standardize(log(weight) ~ pvtp_weight + mix_weight + pub_weight + 
+                       pvtn_weight + dist_weight + quad_dist + nyc_weight +  hi_weight +
+                      op_weight + res_weight + hid_weight + hit_weight + 
+                      od_weight + odt_weight + oit_weight + omb_weight + ort_weight + 
+                      rd_weight + rl_weight + rs_weight +
+                      prop_est_medicaid_diff + prop_est_poverty_diff +
+                      prop_est_white_diff + min_total +
+                  (1 | from) + (1|to), edge_glmer_und)
+
+mod6 <- lmer(sobj6$formula, sobj6$data, control= lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+```
+
+```{r}
+# IF YOU WANT TO SAVE TIME AND SIMPLY LOAD IN THE MODEL
+
+# mod <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.6.rds')
+```
+
+
+
+
+```{r}
+df_small <-  df %>% select(domain, full_text) %>% rename(doc_id = domain) %>% distinct(doc_id, .keep_all = T)
+
+toks_comp <- corpus(df_small, text_field = "full_text")
+
+toks_comp <- toks_comp %>% 
+  tokens(split_hyphens = T, remove_url = T, remove_symbols = T, remove_numbers = T) %>% 
+  tokens_tolower() %>% 
+  tokens_remove(stopwords("english"), padding  = TRUE)
+
+colocs <- toks_comp %>%
+  textstat_collocations(method = "lambda", max_size = 3)
+
+colocs_str <- sapply(colocs$collocation, strsplit, " ", USE.NAMES = FALSE)
+toks_comp <- tokens_compound(toks_comp, colocs_str[1:100])
+
+toks_comp <- toks_comp %>% tokens(remove_punct = T) %>% tokens_remove("")
+
+patient <- as_tibble(kwic(toks_comp, "^patient.*", 10, valuetype = "regex"))
+client <- as_tibble(kwic(toks_comp, "^client.*", 10, valuetype = "regex"))
+```
+
+```{r}
+patient <- patient %>% 
+  filter(keyword != "patiently") %>% 
+  filter(keyword != "patientadvocacybrochure.pdf") %>% 
+  select(docname, pre, post) %>% unite(text, c(pre, post), sep = "")
+  
+client <- client %>% 
+  select(docname, pre, post) %>% unite(text, c(pre, post), sep = "")
+```
+
+```{r, message = F}
+patient_words <- patient %>%
+  distinct(text, .keep_all = T) %>% 
+  mutate(text = textclean::replace_contraction(text)) %>% 
+  unnest_tokens(word, text) %>% 
+  mutate(word = gsub("'s","", word),
+       word = gsub("’s","", word)) %>%  # remove possessives
+  filter(!(nchar(word) < 3), # Remove small words
+       !str_detect(word, "[0-9]"), # Remove any tokens with numbers
+#       !str_detect(word, "[._]"), # Remove tokens with a period or underscore
+       !str_detect(word, "[’']")) %>% # Remove leftover contractions
+  anti_join(stop_words) %>% # Remove default stop_words
+  mutate(word = textstem::lemmatize_words(word)) %>% 
+  count(docname, word, sort = TRUE)
+
+client_words <- client %>%
+  distinct(text, .keep_all = T) %>% 
+  mutate(text = textclean::replace_contraction(text)) %>% 
+  unnest_tokens(word, text) %>% 
+  mutate(word = gsub("'s","", word),
+       word = gsub("’s","", word)) %>%  # remove possessives
+  filter(!(nchar(word) < 3), # Remove small words
+       !str_detect(word, "[0-9]"), # Remove any tokens with numbers
+#       !str_detect(word, "[._]"), # Remove tokens with a period or underscore
+       !str_detect(word, "[’']")) %>% # Remove leftover contractions
+  anti_join(stop_words) %>% # Remove default stop_words
+  mutate(word = textstem::lemmatize_words(word)) %>% 
+  count(docname, word, sort = TRUE)
+```
+
+```{r}
+total_words <- df_small %>% 
+  unnest_tokens(word, full_text) %>% 
+  count(doc_id, word, sort = TRUE) %>% 
+  group_by(doc_id) %>% 
+  summarize(total_doc = sum(n)) %>% 
+  rename(docname = doc_id)
+  
+patient_words <- left_join(patient_words, total_words)
+client_words <- left_join(client_words, total_words)
+```
+
+```{r}
+keep_word_patient <- patient_words %>% count(word) %>% filter(n > 1) # filtering out words that appear in only one document
+keep_word_client <- client_words %>% count(word) %>% filter(n > 1)
+```
+
+```{r}
+patient_words_owner <- patient_words %>% 
+  left_join(distinct(select(df, domain, pvtp, pub, pvtn), domain, .keep_all = T), by = c("docname" = "domain")) %>% 
+  mutate(owner = ifelse(pvtp == 1, "for-profit",
+                        ifelse(pvtn == 1, "non-profit", "public"))) %>%
+  select(-pvtp,-pub,-pvtn) %>% 
+  group_by(owner) %>% 
+  mutate(total_owner = sum(n)) %>% 
+  ungroup() %>%
+  group_by(owner, word) %>% 
+  summarise(n = sum(n), total_docs = sum(total_doc), total_owner = max(total_owner)) %>% 
+  filter(word %in% keep_word_patient$word) %>% 
+  mutate(not_word = total_owner - n)
+
+client_words_owner <- client_words %>% 
+  left_join(distinct(select(df, domain, pvtp, pub, pvtn), domain, .keep_all = T), by = c("docname" = "domain")) %>% 
+  mutate(owner = ifelse(pvtp == 1, "for-profit",
+                        ifelse(pvtn == 1, "non-profit", "public"))) %>%
+  select(-pvtp,-pub,-pvtn) %>% 
+  group_by(owner) %>% 
+  mutate(total_owner = sum(n)) %>% 
+  ungroup() %>%
+  group_by(owner, word) %>% 
+  summarise(n = sum(n), total_docs = sum(total_doc), total_owner = max(total_owner)) %>% 
+  filter(word %in% keep_word_patient$word) %>% 
+  mutate(not_word = total_owner - n)
+```
+
+```{r}
+patient_pvtp <- patient_words_owner %>% filter(owner == "for-profit")
+patient_pvtn <- patient_words_owner %>% filter(owner == "non-profit")
+patient_pub <- patient_words_owner %>% filter(owner == "public")
+
+others_sum <- patient_words_owner %>% ungroup() %>% filter(owner != "for-profit") %>% distinct(total_owner) %>% summarise(sum(total_owner)) %>% pull()
+
+others <- patient_words_owner %>% 
+  filter(owner != "for-profit") %>% 
+  group_by(word) %>% summarise(n_other = sum(n), not_word_other = sum(not_word))
+
+scores <- patient_pvtp %>%
+  ungroup() %>% 
+  left_join(others, by = "word") %>% 
+  mutate(n_other = ifelse(is.na(n_other), 0.00001, n_other), 
+         not_word_other = ifelse(is.na(not_word_other), others_sum, not_word_other)) %>% # make sure the words that aren't in the current category still get a value
+  mutate(N = total_owner + others_sum, 
+         e1 = total_owner * ((n + n_other) / N),
+         e2 = others_sum * ((n + n_other) / N),
+         chisq = 2 * ((n * log(n / e1)) + (n_other * log(n_other / e2)))) %>% # produce likelihood
+  mutate(chisq = ifelse(n < e1, -1 * chisq, chisq)) %>%  # If the observed number is less than expected, make the chisq negative
+  select(word, chisq) %>% 
+  filter(chisq > 3.84)
+
+cleanup <- c("acre", "fill", "print","undergo","comprise","write","last")
+
+top <- scores %>%
+    filter(!(word %in% cleanup)) %>% 
+    top_n(20, chisq) %>% 
+    mutate(word = reorder(word, chisq),
+           owner = "for-profit",
+           key = "patient")
+
+p <- top %>% 
+  ggplot(aes(word, chisq)) +
+      geom_segment(aes(x = word, xend = word,
+                       y = 0, yend = chisq), 
+                   size = 1.1, alpha = 0.6, color='darkblue') +
+      geom_point(size = 3.5, color='darkblue') +
+      geom_hline(yintercept= 3.84, linetype="dotted") +
+      coord_flip() +
+      labs(x = NULL, 
+         y = "Log Likelihood",
+         subtitle = "For-profit services")
+
+```
+
+```{r}
+others_sum <- patient_words_owner %>% ungroup() %>% filter(owner != "non-profit") %>% distinct(total_owner) %>% summarise(sum(total_owner)) %>% pull()
+
+others <- patient_words_owner %>% 
+  filter(owner != "non-profit") %>% 
+  group_by(word) %>% summarise(n_other = sum(n), not_word_other = sum(not_word))
+
+scores <- patient_pvtn %>%
+  ungroup() %>% 
+  left_join(others, by = "word") %>% 
+  mutate(n_other = ifelse(is.na(n_other), 0.00001, n_other), 
+         not_word_other = ifelse(is.na(not_word_other), others_sum, not_word_other)) %>% # make sure the words that aren't in the current category still get a value
+  mutate(N = total_owner + others_sum, 
+         e1 = total_owner * ((n + n_other) / N),
+         e2 = others_sum * ((n + n_other) / N),
+         chisq = 2 * ((n * log(n / e1)) + (n_other * log(n_other / e2)))) %>% # produce likelihood
+  mutate(chisq = ifelse(n < e1, -1 * chisq, chisq)) %>%  # If the observed number is less than expected, make the chisq negative
+  select(word, chisq) %>% 
+  filter(chisq > 3.84)
+
+cleanup <- c("horizon", "village", "hill", "slide","broome","montefiore","build")
+
+top1 <- scores %>%
+    filter(!(word %in% cleanup)) %>% 
+    top_n(20, chisq) %>% 
+    mutate(word = reorder(word, chisq),
+           owner = "non-profit",
+           key = "patient")
+  
+p1 <- top1 %>% 
+    ggplot(aes(word, chisq)) +
+      geom_segment(aes(x = word, xend = word,
+                       y = 0, yend = chisq), 
+                   size = 1.1, alpha = 0.6, color='springgreen4') +
+      geom_point(size = 3.5, color='springgreen4') +
+      geom_hline(yintercept= 3.84, linetype="dotted") +
+      coord_flip() +
+      labs(x = NULL, 
+         y = "Log Likelihood",
+         subtitle = "Non-profit services")
+```
+
+```{r}
+others_sum <- patient_words_owner %>% ungroup() %>% filter(owner != "public") %>% distinct(total_owner) %>% summarise(sum(total_owner)) %>% pull()
+
+others <- patient_words_owner %>% 
+  filter(owner != "public") %>% 
+  group_by(word) %>% summarise(n_other = sum(n), not_word_other = sum(not_word))
+
+scores <- patient_pub %>%
+  ungroup() %>% 
+  left_join(others, by = "word") %>% 
+  mutate(n_other = ifelse(is.na(n_other), 0.00001, n_other), 
+         not_word_other = ifelse(is.na(not_word_other), others_sum, not_word_other)) %>% # make sure the words that aren't in the current category still get a value
+  mutate(N = total_owner + others_sum, 
+         e1 = total_owner * ((n + n_other) / N),
+         e2 = others_sum * ((n + n_other) / N),
+         chisq = 2 * ((n * log(n / e1)) + (n_other * log(n_other / e2)))) %>% # produce likelihood
+  mutate(chisq = ifelse(n < e1, -1 * chisq, chisq)) %>%  # If the observed number is less than expected, make the chisq negative
+  select(word, chisq) %>% 
+  filter(chisq > 3.84)
+
+cleanup <- c("beacon", "village", "hill", "slide","broome","montefiore","build")
+
+top2 <- scores %>%
+    filter(!(word %in% cleanup)) %>% 
+    top_n(20, chisq) %>% 
+    mutate(word = reorder(word, chisq),
+           owner = "public",
+           key = "patient")
+  
+p2 <- top2 %>% 
+    ggplot(aes(word, chisq)) +
+      geom_segment(aes(x = word, xend = word,
+                       y = 0, yend = chisq), 
+                   size = 1.1, alpha = 0.6, color='firebrick4') +
+      geom_point(size = 3.5, color='firebrick4') +
+      geom_hline(yintercept= 3.84, linetype="dotted") +
+      coord_flip() +
+      labs(x = NULL, 
+         y = "Log Likelihood",
+         subtitle = "Public services")
+```
+
+```{r}
+client_pvtp <- client_words_owner %>% filter(owner == "for-profit")
+client_pvtn <- client_words_owner %>% filter(owner == "non-profit")
+client_pub <- client_words_owner %>% filter(owner == "public")
+
+others_sum <- client_words_owner %>% ungroup() %>% filter(owner != "for-profit") %>% distinct(total_owner) %>% summarise(sum(total_owner)) %>% pull()
+
+others <- client_words_owner %>% 
+  filter(owner != "for-profit") %>% 
+  group_by(word) %>% summarise(n_other = sum(n), not_word_other = sum(not_word))
+
+scores <- client_pvtp %>%
+  ungroup() %>% 
+  left_join(others, by = "word") %>% 
+  mutate(n_other = ifelse(is.na(n_other), 0.00001, n_other), 
+         not_word_other = ifelse(is.na(not_word_other), others_sum, not_word_other)) %>% # make sure the words that aren't in the current category still get a value
+  mutate(N = total_owner + others_sum, 
+         e1 = total_owner * ((n + n_other) / N),
+         e2 = others_sum * ((n + n_other) / N),
+         chisq = 2 * ((n * log(n / e1)) + (n_other * log(n_other / e2)))) %>% # produce likelihood
+  mutate(chisq = ifelse(n < e1, -1 * chisq, chisq)) %>%  # If the observed number is less than expected, make the chisq negative
+  select(word, chisq) %>% 
+  filter(chisq > 3.84)
+
+cleanup <- c("long_island", "east")
+
+top3 <- scores %>%
+    filter(!(word %in% cleanup)) %>% 
+    top_n(20, chisq) %>% 
+    mutate(word = reorder(word, chisq),
+           owner = "for-profit",
+           key = "client")
+  
+p3 <- top3 %>% 
+    ggplot(aes(word, chisq)) +
+      geom_segment(aes(x = word, xend = word,
+                       y = 0, yend = chisq), 
+                   size = 1.1, alpha = 0.6, color='darkblue') +
+      geom_point(size = 3.5, color='darkblue') +
+      geom_hline(yintercept= 3.84, linetype="dotted") +
+      coord_flip() +
+      labs(x = NULL, 
+         y = "Log Likelihood",
+         subtitle = "For-profit services")
+```
+
+```{r}
+others_sum <- client_words_owner %>% ungroup() %>% filter(owner != "non-profit") %>% distinct(total_owner) %>% summarise(sum(total_owner)) %>% pull()
+
+others <- client_words_owner %>% 
+  filter(owner != "non-profit") %>% 
+  group_by(word) %>% summarise(n_other = sum(n), not_word_other = sum(not_word))
+
+scores <- client_pvtn %>%
+  ungroup() %>% 
+  left_join(others, by = "word") %>% 
+  mutate(n_other = ifelse(is.na(n_other), 0.00001, n_other), 
+         not_word_other = ifelse(is.na(not_word_other), others_sum, not_word_other)) %>% # make sure the words that aren't in the current category still get a value
+  mutate(N = total_owner + others_sum, 
+         e1 = total_owner * ((n + n_other) / N),
+         e2 = others_sum * ((n + n_other) / N),
+         chisq = 2 * ((n * log(n / e1)) + (n_other * log(n_other / e2)))) %>% # produce likelihood
+  mutate(chisq = ifelse(n < e1, -1 * chisq, chisq)) %>%  # If the observed number is less than expected, make the chisq negative
+  select(word, chisq) %>% 
+  filter(chisq > 3.84)
+
+cleanup <- c("village", "samaritan", "house")
+
+top4 <- scores %>%
+    filter(!(word %in% cleanup)) %>% 
+    top_n(20, chisq) %>% 
+    mutate(word = reorder(word, chisq),
+           owner = "non-profit",
+           key = "client")
+  
+p4 <- top4 %>% 
+    ggplot(aes(word, chisq)) +
+      geom_segment(aes(x = word, xend = word,
+                       y = 0, yend = chisq), 
+                   size = 1.1, alpha = 0.6, color='springgreen4') +
+      geom_point(size = 3.5, color='springgreen4') +
+      geom_hline(yintercept= 3.84, linetype="dotted") +
+      coord_flip() +
+      labs(x = NULL, 
+         y = "Log Likelihood",
+         subtitle = "Non-profit services")
+```
+
+```{r}
+others_sum <- client_words_owner %>% ungroup() %>% filter(owner != "public") %>% distinct(total_owner) %>% summarise(sum(total_owner)) %>% pull()
+
+others <- client_words_owner %>% 
+  filter(owner != "public") %>% 
+  group_by(word) %>% summarise(n_other = sum(n), not_word_other = sum(not_word))
+
+scores <- client_pub %>%
+  ungroup() %>% 
+  left_join(others, by = "word") %>% 
+  mutate(n_other = ifelse(is.na(n_other), 0.00001, n_other), 
+         not_word_other = ifelse(is.na(not_word_other), others_sum, not_word_other)) %>% # make sure the words that aren't in the current category still get a value
+  mutate(N = total_owner + others_sum, 
+         e1 = total_owner * ((n + n_other) / N),
+         e2 = others_sum * ((n + n_other) / N),
+         chisq = 2 * ((n * log(n / e1)) + (n_other * log(n_other / e2)))) %>% # produce likelihood
+  mutate(chisq = ifelse(n < e1, -1 * chisq, chisq)) %>%  # If the observed number is less than expected, make the chisq negative
+  select(word, chisq) %>% 
+  filter(chisq > 3.84)
+
+# cleanup <- c()
+
+top5 <- scores %>%
+    top_n(20, chisq) %>% 
+    mutate(word = reorder(word, chisq),
+           owner = "public",
+           key = "client")
+  
+p5 <- top5 %>% 
+    ggplot(aes(word, chisq)) +
+      geom_segment(aes(x = word, xend = word,
+                       y = 0, yend = chisq), 
+                   size = 1.1, alpha = 0.6, color='firebrick4') +
+      geom_point(size = 3.5, color='firebrick4') +
+      geom_hline(yintercept= 3.84, linetype="dotted") +
+      coord_flip() +
+      labs(x = NULL, 
+         y = "Log Likelihood",
+         subtitle = "Public services")
+```
+
+```{r}
+library(kableExtra)
+
+tops <- rbind(top, top1, top2, top3, top4, top5)
+tops <- tops %>% mutate(word = as.character(word))
+
+forprofit_patient <- tops %>% filter(owner == "for-profit" & key == "patient") %>%
+  arrange(-chisq) %>% 
+  pull(word)
+
+nonprofit_patient <- tops %>% 
+  filter(owner == "non-profit" & key == "patient") %>% 
+  filter(row_number() <= 20) %>% 
+  arrange(-chisq) %>% 
+  pull(word)
+
+public_patient <- tops %>% filter(owner == "public" & key == "patient") %>%
+  arrange(-chisq) %>% 
+  pull(word)
+
+forprofit_client <- tops %>% filter(owner == "for-profit" & key == "client") %>%
+  arrange(-chisq) %>% 
+  pull(word)
+
+nonprofit_client <- tops %>% filter(owner == "non-profit" & key == "client") %>%
+  arrange(-chisq) %>% 
+  pull(word)
+
+public_client <- tops %>% filter(owner == "public" & key == "client") %>%
+  arrange(-chisq) %>% 
+  pull(word)
+
+table <- data.frame(forprofit_patient, nonprofit_patient, public_patient,
+           forprofit_client, nonprofit_client, public_client)
+
+table_2 <- data.frame(forprofit_patient, public_patient,
+                      forprofit_client, public_client)
+
+p2 <- kable(table_2, col.names = c("for-profit","public",
+                           "for-profit","public"),
+      caption = "Table 3: Top neighboring words by keyword and ownership") %>%
+  kable_classic_2() %>%
+  add_header_above(c("Patient" = 2, "Client" = 2))
+```
+
+```{r}
+model_df <- broom.mixed::tidy(mod6) %>% select(term, estimate, std.error) %>%
+  mutate(model = 1) %>% filter(!is.na(std.error)) %>%     
+  mutate(term = recode(term, "pvtn_weight1" = "both nonprofit",
+                       "pvtp_weight1" = "both forprofit",
+                       "pub_weight1" = "both public",
+                       "mix_weight1" = "for-profit / non-profit pair",
+                       "nyc_weight1" = "located in NYC",
+                       "dist_weight"= "geographic distance",
+                       "quad_dist" = "quadratic of geographic distance",
+                       "hi_weight1" = "hospital inpatient",
+                       "op_weight1" = "outpatient",
+                       "res_weight1" = "residential",
+                       "hid_weight1" = "hospital inpatient detox",
+                       "hit_weight1" = "hospital inpatient treatment",
+                       "od_weight1" = "outpatient detoxification",
+                       "odt_weight1" = "outpatient day treatment",
+                       "oit_weight1" = "intensive outpatient treatment",
+                       "omb_weight1" = "outpatient pharma treatment",
+                       "ort_weight1" = "regular outpatient treatment",
+                       "rd_weight1" = "residential detoxification",
+                       "rl_weight1" = "long-term residential",
+                       "rs_weight1" = "short-term residential",
+                       "min_total" = "length of smallest document in dyad",
+                       "prop_est_medicaid_diff" = "difference in % medicaid coverage",
+                       "prop_est_poverty_diff" = "difference in % poverty",
+                       "prop_est_white_diff" = "difference in % white",
+                       "pvtn_weight1:prop_est_medicaid_diff" = "both nonprofit:difference in % medicaid coverage",
+                       "pvtp_weight1:prop_est_medicaid_diff" = "both forprofit:difference in % medicaid coverage",
+                       "pub_weight1:prop_est_medicaid_diff" = "both public:difference in % medicaid coverage",
+                       "pvtn_weight1:prop_est_poverty_diff" = "both nonprofit:difference in % poverty",
+                       "pvtp_weight1:prop_est_poverty_diff" = "both forprofit:difference in % poverty",
+                       "pub_weight1:prop_est_poverty_diff" = "both public:difference in % poverty",
+                       "pvtn_weight1:prop_est_white_diff" = "both nonprofit:difference in % white",
+                       "pvtp_weight1:prop_est_white_diff" = "both forprofit:difference in % white",
+                       "pub_weight1:prop_est_white_diff" = "both public:difference in % white",
+                       "pvtn_weight1:dist_weight" = "both nonprofit:distance scaled",
+                       "pvtp_weight1:dist_weight" = "both forprofit:distance scaled",
+                       "pub_weight1:dist_weight" = "both public:distance scaled"))
+
+brackets <- list(c("ownership","both forprofit","both nonprofit"),
+                 c("geography", "geographic distance","located in NYC"),
+                 c("treatments","hospital inpatient","short-term residential"),
+                 c("demographics","difference in % medicaid coverage","difference in % white"))
+
+p <- model_df %>% dwplot + theme_bw() + theme(legend.position="none") +
+    ggtitle("Mixed Model Results:\nPredicting Semantic Similarity") +
+    geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+    xlab("Coefficients")
+
+p <- add_brackets(p, brackets, face = "bold.italic")
+```
+
+```{r}
+table <- df %>% 
+  summarise(pvtp = sum(pvtp), pvtn = sum(pvtn), pub = sum(pub))
+
+num_domain <- df %>% group_by(domain) %>% tally() %>% nrow()
+num_services <- df %>% group_by(ID) %>% tally() %>% nrow()
+
+table <- tibble(num_services, num_domain, table) %>% pivot_longer(everything ())
+
+table2 <- df %>% select(domain, pvtp, pvtn, pub) %>% 
+  left_join(total_words, by = c("domain" = "docname")) %>% 
+  mutate(owner = ifelse(pvtn == 1, 1,
+                        ifelse(pvtp == 1, 2, 3))) %>% 
+  group_by(owner) %>% 
+  summarise(value = mean(total_doc)) %>% 
+  rename("name" = "owner")
+
+final_table <- rbind(table, table2)
+
+final_table$value <- round(final_table$value, 0)
+
+final_table <- final_table %>% 
+  mutate(name = recode(name, "num_services" = "number of unique services",
+                      "num_domain" = "number of unique organizations",
+                      "pvtp" = "number of for-profit services",
+                      "pvtn" = "number of non-profit services",
+                      "pub" = "number of public services",
+                      "1" = "mean number of terms used by non-profit organizations",
+                      "2" = "mean number of terms used by for-profit organizations",
+                      "3" = "mean number of terms used by public organizations"))
+
+
+p1 <- kable(final_table, col.names = NULL, caption = "Table 1: Descriptive characteristics of the data") %>% 
+  kable_styling(full_width = FALSE) %>% 
+  kable_classic_2() %>% 
+  group_rows("Field level",1,2) %>% 
+  group_rows("Ownership level",3,5) %>% 
+  group_rows("Discursive level",6,8)
+```
+
+```{r}
+mod <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.rds')
+mod1 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.1.rds')
+mod2 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.2.rds')
+mod3 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.3.rds')
+mod4 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.4.rds')
+mod5 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.5.rds')
+mod6 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.6.rds')
+mod7 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.7.rds')
+mod8 <- readRDS('/Users/gabe/Documents/Classes/Second year paper/model_results/final.8.rds')
+
+bic_table <- tibble(BIC(mod), BIC(mod1), BIC(mod2), BIC(mod3), BIC(mod4), 
+                    BIC(mod5), BIC(mod6), BIC(mod7), BIC(mod8)) %>% 
+  pivot_longer(everything()) %>% 
+  arrange(value) %>% 
+  mutate(name = recode(name, "BIC(mod6)" = "ownership homophily + treatment/geographic controls + ACS + non-profit/for-profit + NYC",
+                       "BIC(mod2)" = "ownership homophily + treatment/geographic controls + ACS",
+                       "BIC(mod5)" = "ownership homophily + treatment/geographic controls + non-profit/for-profit",
+                       "BIC(mod8)" = "ownership homophily*geography + non-profit/for-profit*geography + treatment controls + NYC + ACS",
+                       "BIC(mod7)" = "ownership homophily*ACS + treatment/geographic controls + non-profit/for-profit + NYC",
+                       "BIC(mod3)" = "ownership homophily*ACS + treatment/geographic controls",
+                       "BIC(mod4)" = "ownership homophily*ACS + non-profit/for-profit*ACS + treatment/geographic controls",
+                       "BIC(mod1)" = "ownership homophily + treatment/geographic controls",
+                       "BIC(mod)" = "ownership homophily"))
+
+
+p3 <- kable(bic_table, col.names = c("model terms", "BIC values"), caption = "") %>% 
+  kable_styling(full_width = FALSE) %>% 
+  kable_classic_2()
+```
+
