@@ -1,4 +1,4 @@
-Writing a reproducible paper in R Markdown
+Collective Speech Among Addiction Treatment Organizations
 ================
 
 This repository contains the files necessary to reproduce my paper

@@ -1,5 +1,5 @@
 ---
-title: "Writing a reproducible paper in R Markdown"
+title: "Collective Speech Among Addiction Treatment Organizations"
 output:
   github_document:
     toc: true
