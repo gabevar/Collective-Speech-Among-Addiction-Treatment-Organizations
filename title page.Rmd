@@ -1,0 +1,32 @@
+---
+title: "&nbsp;"
+author: |
+  | Gabriel Varela
+  | Duke University
+  | 917-861-9198
+  | gv42@duke.edu
+linestretch: 2
+colorlinks: true
+bibliography: references.bib
+csl: american-sociological-association.csl
+output:
+  bookdown::pdf_document2:
+    toc: no
+    keep_tex: true
+    number_sections: false
+    extra_dependencies: rotating
+mainfont: Times New Roman
+sansfont: Times New Roman
+fontsize: 12pt
+link-citations: true
+documentclass: article
+geometry: margin=1in
+indent: true
+always_allow_html: yes
+editor_options: 
+  chunk_output_type: inline
+header-includes:
+   - \usepackage{longtable}
+   - \usepackage{threeparttable}
+---
+

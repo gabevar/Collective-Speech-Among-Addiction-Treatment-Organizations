@@ -1,0 +1,33 @@
+---
+title: "&nbsp;"
+abstract: \noindent\setstretch{1}The market for addiction treatment has transformed radically in response to the opioid epidemic and regulatory changes. An influx of for-profit addiction treatment services has been met with skepticism and reports of patient abuse. As a result, for-profit organizations are under disproportionate amounts of normative pressure, raising the question`:`what strategies will for-profits adopt to legitimize their practice? By examining the online speech of every addiction treatment service in New York State, this article highlights the extent to which for-profit, non-profit and public organizations use collective and distinctive language. I find that while for-profit and public organizations exhibit some collective speech, non-profits do not. Auxiliary analysis also reveal that for-profit organizations use different repertoires of language when describing patients and clients. Overall, results suggests that language coheres, or fails to cohere, differently given ownership type. \vspace{.8cm}
+linestretch: 2
+colorlinks: true
+bibliography: references.bib
+csl: american-sociological-association.csl
+output:
+  bookdown::pdf_document2:
+    toc: no
+    keep_tex: true
+    number_sections: false
+    extra_dependencies: rotating
+mainfont: Times New Roman
+sansfont: Times New Roman
+fontsize: 12pt
+link-citations: true
+documentclass: article
+geometry: margin=1in
+indent: true
+always_allow_html: yes
+editor_options: 
+  chunk_output_type: inline
+header-includes:
+   - \usepackage{longtable}
+   - \usepackage{threeparttable}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\pagenumbering{gobble}

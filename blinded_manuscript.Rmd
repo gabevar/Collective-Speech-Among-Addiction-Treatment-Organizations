@@ -1,0 +1,554 @@
+---
+title: "|\n| \n| \\vspace{1cm}Blinded Manuscript\n| \n|\n"
+linestretch: 2
+colorlinks: yes
+output:
+  pdf_document:
+    toc: no
+  bookdown::pdf_document2:
+    toc: no
+    keep_tex: yes
+    number_sections: no
+    extra_dependencies: rotating
+csl: american-sociological-association-chronological.csl
+bibliography: references.bib
+mainfont: Times New Roman
+sansfont: Times New Roman
+fontsize: 12pt
+link-citations: yes
+documentclass: article
+geometry: margin=1in
+indent: yes
+always_allow_html: yes
+editor_options:
+  chunk_output_type: inline
+header-includes:
+- \usepackage{longtable}
+- \usepackage{threeparttable}
+nocite: |
+  @substanceabuseandmentalhealthservicesadministration2020, @centerfordiseasecontrol2020, @substanceabuseandmentalhealthservicesadministration2015, @nationalassociationofaddictiontreatmentproviders2019, @americansocietyofaddictionmedicine2015, @u.scensusbureau2019
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = FALSE) # Use chache = TRUE if you want to speed up compilation
+knitr::opts_chunk$set(echo = FALSE) # Toggle on or off to show code chunks
+
+# A function to allow for showing some of the inline code
+rinline <- function(code){
+  html <- '<code  class="r">``` `r CODE` ```</code>'
+  sub("CODE", code, html)
+}
+```
+
+```{r}
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+path <- getwd()
+
+library(kableExtra)
+```
+
+\clearpage
+
+# Introduction
+
+How do new entrants to an organizational field seek legitimacy? The ability to communicate with clients is, particularly in a healthcare market, fundamental to organizational success [@bail2016]. Organizations may look to their peers as models for how to speak, and in turn signal legitimacy by leveraging specific repertoires of speech. In this article, I draw from the literature in organizational sociology, moral markets, medicalization and the growing field of computational methods to better understand the factors influencing organizational speech in addiction treatment facilities in New York State. In particular, I consider two competing sets of organizational theories to explore how new entrants seeking legitimacy construct a common narrative. On the one hand, isomorphism [@dimaggio1983] predicts that new entrants should begin to resemble established organizations in the field as a reaction to normative pressure. If an isomorphic process is in fact taking place, then we should expect organizations to speak similarly and not observe clustering. On the other hand, contemporary criticisms of the isomorphic approach have asked scholars to consider the way morality becomes infused into markets and leads certain organizations to resist isomorphic change. These moral market approaches predict that new entrants should react to pressure by creating a unique and distinctive blend of market and treatment values that justify their practice [@fourcade2007;@reich2014]. In this view, the field of addiction treatment should feature strong speech clusters.
+
+\vspace{12pt}
+
+Scholars have been particularly interested in the ways in which organizational speech clusters around shared ownership type—being a for-profit, non-profit or public organization. Indeed, two organizations of the same ownership type often share key characteristics such as income streams, tax regulations and legal statuses. As a result, there is evidence that organizational speech and culture varies both across and within ownership type [@dimaggio1990;@mohr1994;@erreygers2005;@paxton2020;@weber2011;@zhao2021]. But not all ownership types are viewed equally within and outside of the field. Particularly in a highly moralized healthcare market such as addiction treatment, some ownership types are viewed as more legitimate, while others experience strong normative pressure to prove their legitimacy. And yet, little research has studied how organizational speech coheres at the field level in the face of this differentially-distributed normative pressure.
+
+\vspace{12pt}
+
+Illuminating this process would inform both organizational and health scholarship. Currently, research on organizations across sub-disciplines largely considers ownership types as de facto coherent categories. Few studies have looked at speech across ownership types in a given field [@fuchs2005;@wetts2020], and those who do implicitly assume that finding difference in speech across ownership types is equivalent to within-ownership similarity of speech. In other words, evidence of inter-ownership speech difference yield assumptions of intra-ownership similarity. Although perhaps true in some cases, this de-emphasizes the possibility that the relationship between ownership and speech—not just speech itself—may be significantly different across ownership types. Some ownership types may be associated with more coherence–and leverage more repertoires to build that coherence–than others. In a healthcare market, such coherence (or lack thereof) may quickly translate to differential access to a particular quality of care.
+
+\vspace{12pt}
+
+Health scholars have noted the importance of for-profit ownership on quality of care in the addiction field [@bachhuber2014;@beetham2021]. Key regulatory changes in the United States have made treatment more accessible than ever, coinciding with repeated waves of opioid epidemics[@rudd2014](Center for Disease Control 2020). These changes have resulted in significant transformations in the market, with for-profits representing 29% of the field in 2009 to 40% in 2019 (Substance Abuse and Mental Health Services Administration 2020). Profit-seeking motive in the provision of addiction care is often seen as a root cause of the problem, particularly in the wider public [@segal2017]. As a result, for-profit organizations are under a particular normative pressure to legitimize their approach. Yet, policy scholars note that language remains a powerful tool of for-profit organizations when recruiting patients, which is not the case for other ownership types [@beetham2021]. Deploying social theory to understand the contours of the field can begin to answer the puzzle described by policy scholarship.
+
+\vspace{12pt}
+
+I investigate the online speech of every certified addiction treatment organization in New York State in 2020. I hypothesize that for-profit organizations pull from a shared pool of language in order to legitimate the for-profit approach, and that they also pull from multiple repertoires of speech. Conversely, I hypothesize that non-profit and public organizations—who do not experience comparable pressure—will exhibit less collective speech. Until recently, social scientists lacked the ability to analyze organizational speech at scale. Most of the work published in the area of addiction treatment uses qualitative methods [@iacobucci2018], although computational approaches are being deployed in other areas of organizational research [@paxton2020;@wetts2020;@haber2021]. In this article, I use computational text-analysis techniques to systematically measure collective speech by ownership type among addiction treatment organizations. In addition, I do so net of several material factors that we might expect lead to similar speech, such as geographic closeness. The use of computational approaches iteratively with a close reading of documents is an increasingly popular approach [@nelson2017] that can complement existing scholarship.
+
+# The History of Addiction Treatment
+
+Until 1939, historical efforts to handle addiction have been limited. Most individuals suffering from substance abuse were housed in hospitals and almshouses and rarely received necessary treatment. Those few who undertook treatment were usually a responsibility of the state. Despite early attempts to realize treatment—mentions of sober houses can be found as early as 1783—the first effective contemporary endeavors came in 1939 with the founding of Alcoholics Anonymous. At that point hospitals had grudgingly treated alcoholics and considered them difficult patients who failed to pay their bills. A key part of AA’s success was changing the framing of addiction from a moral weakness to a medical illness [@henninger2014]. Following this landmark change, grass roots non-profits like Pioneer House and Hazelden Farm effectively refocused medical attention on substance use disorder (SUD) and started to change public perceptions on the issue. The field of substance abuse became largely driven by non-profit organizations with a dual focus on local community issues (particularly in major cities like New York and San Francisco) and an interest in changing national public perceptions. It is these same players who shaped contemporary treatment approaches through a combination of inpatient detoxification, medical treatment and outpatient follow-up work.
+
+\vspace{12pt}
+
+While for-profit organizations were far from absent during this period spanning the second half of the 20th century, they took a back seat both numerically and politically. A key issue for profit-seeking organizations is accessing a wide enough pool of patients. A part of the clientele is willing and able to pay out of pocket for substance abuse treatment: those clients were and still are at the core of the for-profit substance abuse treatment field, exemplified by the luxury rehab compound. However, the larger portion of individuals who pay for treatment through public and private insurance remained out of reach, with most plans failing to provide coverage for SUD treatment in any form. This changed with the 2008 Mental Health Parity and Addiction Equity (MHPAE) Act which enforced insurance parity between substance abuse treatment and other medical needs, opening treatment opportunities for millions of individuals in need of care [@barry2010]. This effect was further compounded in 2010 by the Affordable Care Act (ACA) which extended insurance coverage—at states’ discretion—to thousands more [@abraham2017;@maclean2019]. These two regulatory changes, combined with a second wave of the opioid epidemic [@rudd2014] created the conditions for a major expansion of the for-profit market: in 2009—a year after the passing of the MHPAE act—for profit substance abuse treatment represented 29% of the national field. In 2019, for-profit ownership makes up 40% of all organizations in the field. Spending has changed accordingly, with private (as opposed to public) recipient organizations increasing their share of total SUD spending from 31% in 2006 to 43% in 2015 (Substance Abuse and Mental Health Services Administration 2015).
+
+\vspace{12pt}
+
+[INSERT FIGURE 1 HERE]
+
+\vspace{12pt}
+
+While the previous luxury for-profit program remains an important actor in field of substance abuse, new for-profit services have emerged to answer regulatory changes and demand. What is described as a veritable “gold rush” in the market for addiction [@mann2021] did not, however, only bring in good actors. A slew of anecdotal evidence has shed light on the potential for heterogenous quality of care [@meyer2018], and even cases of outright fraud, as in the case in the market for urinary testing [@segal2017]. @beetham2021 performed an audit study of for-profit “detox” programs, finding that they may charge up to twice as much as comparable non-profit services—while simultaneously utilizing aggressive recruitment techniques. The National Association of Addiction Treatment Providers (NAATP) themselves have recognized this as a field-wide crisis and centered ethics as a core part of their most recent strategic plan, going so far as to begin “the unusual undertaking of removing numerous members of the association at considerable financial loss and strictly evaluating ongoing membership for ethical compliance” [emphasis added] (National Association of Addiction Treatment Providers 2019).
+
+\vspace{12pt}
+
+To capture the attention of a population that is either insured for treatment or that can afford treatment out of pocket, for-profit organizations must leverage a strategic identity—a cultural presentation of self that is projected toward clients and families. In addition, they must do so while facing strong normative pressures from both within and outside the field. Studying these new actors in an increasingly moralized field is an opportunity to ask: with their legitimacy threatened, do for-profit organizations cohere around common speech more than other ownership types? If so, do they imitate more established—and better regarded—non-profits? Or instead, do they attempt to speak distinctively and legitimate their approach?
+
+# Mechanisms Shaping Coherence by Ownership
+
+## *Isomorphism*
+
+Faced with the threat of losing all legitimacy, one approach for new for-profit addiction treatment organizations may be to imitate established non-profit actors. This is precisely what institutional theories expect is taking place within a given market. @dimaggio1983 argue that new entrants to a market experience various forms of pressures, including normative pressures, particularly under conditions of uncertainty. These pressures lead to a process of isomorphism—a homogenization of organizational structures. The authors provide several hypotheses about the predictors of isomorphic change, including a reliance on credentialing, transactions with state agencies, few alternative organizational models and uncertain technological change. 
+
+\vspace{12pt}
+
+All four of these predictors are highly salient in the field of addiction treatment. For instance, addiction treatment organizations can undergo several instances of credentialling at the professional level (NAATP), the state level (OASAS) and the federal level (SAMHSA). The Medicaid reimbursements that form an increasingly important part of income streams represent a systematic transaction with state agencies. As noted previously, few treatment alternatives exist, and the few existing ones are further restricted by strict medical guidelines (American Society of Addiction Medicine 2015). Lastly, addiction medicine is an evolving technological field, as is exemplified by the rapid successive releases of methadone, buprenorphine and naltrexone, all with distinct implications for care.
+
+\vspace{12pt}
+
+Isomorphism was further adapted to the healthcare field by @scott2000 and applied to particular healthcare systems to study how fields are changing (or not) [@clarke1992;@macfarlane2013]. For example, @hughes2008 explore the changing configuration of a modernized British NHS, finding relative influences of each type of isomorphic pressure. Institutional theory has also made its way to the specific study of addiction care, where researchers have found evidence of the isomorphic process in adaptation to culturally responsive care [@guerrero2013;@guerrero2016] and expect continued homogenization leading to firm consolidation [@corredoira2006]. A growing body of empirical research suggests that funding and regulation have made services increasingly responsive to client needs in general [@simpson2007] and in the criminal justice system in particular [@chavez2012]. @staton2021 describe the isomorphic process in a jail diversion program that is changing its focus toward persons with opioid use disorder.
+
+\vspace{12pt}
+
+The isomorphic lens plays an important role in the ways that addiction researchers have approached change in the addiction treatment field. Since ownership type structures many of the characteristics that might foster or impede isomorphic change, studies naturally rely on comparisons across these types to determine how isomorphic the field has become. The overwhelming majority of studies focus on organizational structure, funding and activity as evidence for isomorphic change. Much less is known about organizational speech. Scholars have focused on single organizations [@jordan2015] or comparisons between two categories such as public and private [@iacobucci2018]. @zhao2021 test whether shared ownership is predictive of shared framing around the opioid epidemic, although their analysis focuses on regulatory agencies and pharmaceutical corporations rather than treatment providers.
+
+\vspace{12pt}
+
+According to institutionalist explanations of form emergence, recent for-profit entrants to the addiction treatment market should arrange their structure, treatments and behaviors with clients in function of what is perceived as good and appropriate. The same could be expected of speech. In a market where for-profits are seeking to present themselves as a legitimate course of action for treatment, they may look to established actors for frames and vocabulary. A visualization of the discursive field of addiction treatment may look like scenario A in Figure 2—an ideal-typical scenario in which the addiction field has niches based on expertise, but where ownership type plays no clear role in clustering.
+
+## *Moral Markets*
+
+Growing from this seminal research stream on isomorphism, a group of scholars have sought to explain deviations from the simple isomorphic process. For example, @reich2014 explores why three non-profit hospitals in the same area of Northern California exhibit qualitatively different behavior, framing of care and structure despite facing the conditions for isomorphism—including shared ownership type. He draws from @stinchcombe2000 to argue that moral missions become “imprinted” [@reich2014 :1579] in the organization, which allows them to resist mimetic pressures. In Reich’s case, non-profit ownership is not a coherent category of hospitals; founding year is a much more useful categorization. This focus on the moral and social components of markets asks us to read organizations as having moral projects, from which moralized markets may emerge [@fourcade2007].
+
+\vspace{12pt}
+
+Not all moral markets exhibit differentiation within ownership type. In fact, the moralization of a market can translate into normative pressures which undergird the isomorphic process. Both the commodification of motherhood [@turco2012] and scarcity in hospice care [@livne2014] are forces which exert similar pressure on the whole field. However, adding complexity to the forces that shape imitation between organizations allows for the possibility of markets to remain heterogenous. Additional evidence of this has been found in the trade of blood and organs [@healy2010], mutual funds [@lounsbury2007], manufacturing [@greenwood2010] and cadavers [@anteby2010]. Although ownership type isn’t always the primary focus, these scholars often reveal how different market orientations can help organizations resist isomorphic forces. 
+
+\vspace{12pt}
+
+While the addiction treatment field exhibits the conditions necessary for isomorphism across ownership types, it also presents similar features to moralized markets. This is particularly the case when publics find for-profit interests to be dissonant with the provision of care [@you2016]. The worry about whether an organization is in the field for “the right reasons” is present in the field of substance abuse treatment as well [@storbjork2019;@beetham2021]. If the disproportionate normative pressure experienced by for-profit addiction treatment organizations stems from doubts about their moral orientation, we may expect that these actors recognize themselves as a collective under threat and cluster together to legitimate the for-profit approach–leading to several different clusters of speech at the field level. This possibility is presented as scenario B in Figure 2. As such, I hypothesize that:
+
+\vspace{12pt}
+
+| **Hypothesis 1:** Sharing for-profit ownership will be predictive of discursive similarity.
+
+\vspace{12pt}
+
+On the other hand, non-profit and public organizations don’t tend to receive the same scrutiny over their moral orientation. In fact, I have shown that non-profit actors are the heroes of the addiction treatment story. Untainted by profit-seeking motives, their approach is considered more patient-centered. In addition, non-profit and public organizations tend to work with patients who have more complex comorbidities such as homelessness and other mental health issues [@beetham2021]. I argue that non-profits and public organizations are not viewed as a collective defined by their ownership, but rather as individual organizations embedded in their local communities. As a result, I hypothesize that:
+
+\vspace{12pt}
+
+| **Hypothesis 2:** Sharing non-profit and public ownership will be less predictive of discursive similarity than sharing for-profit ownership.
+
+\vspace{12pt}
+
+[INSERT FIGURE 2 HERE]
+
+## *Content of collective speech*
+
+If my hypothesis is correct and certain ownership types cohere more than others, the natural next question to ask is what that speech consists of. Instead of looking at all words, I focus on a particular object being spoken about, namely the patients and clients themselves. This has two main benefits over a more exhaustive analysis: first, references to patient and client are often parts of the websites that are referring to the reader directly, enabling me to focus on sections of the text where organizations make their most direct appeals. Second, it allows me to analyze the words using existing concepts formulated by medical sociologists. Unsurprisingly, a main focus of medical sociologists has been the patient, seeking to understand how the “sick role” [@parsons1951] is constructed by institutional forces. The movement from the political sphere to the medical sphere—otherwise known as medicalisation [@conrad1992]—has been key to understanding how the definition of addicted patient has developed across racial, gender and age lines [@acker2002;@conrad2010;@granfield2014]. Discourse studies have systematically been leveraged to operationalize definitions of addicted patienthood [@andersen2015;@selbekk2016;@hatcher2018;@riboni2020].
+
+\vspace{12pt}
+
+However, research in this tradition has either focused on a particular ownership setting, such as public methadone clinics [@bourgois2000], or compared across ownership type [@iacobucci2018]. @iacobucci2018 compare the websites of 20 public organizations and 20 private addiction treatment organizations in New York State and find more controlling language in public offerings. They focus their analysis on a priori coding schemes (criminality, holism etc.,) and do not distinguish between for-profit and non-profit private organizations. These approaches have the benefit of capturing how particular organizations structure and contest the terrain of addiction. They are not as effective at systematically revealing similarity in language between and within ownership types. Building off their work, I propose to leverage computational methods to explore the variety of repertoires used by organizations of a given ownership type when defining patient and client. Because public organizations are largely defined by their connection with the state, I expect that these organizations will be using simple formal language reminiscent of large bureaucracies. Additionally, public services are often located in hospitals and consequently receive patients regardless of their ability to be attractive.
+
+\vspace{12pt}
+
+| **Hypothesis 3:** Public organizations will use a single repertoire when speaking of “patient” and “client” 
+
+\vspace{12pt}
+
+Conversely, I hypothesize that for-profit and non-profit organizations need to engage readers in several different ways in order to be competitive. Marketing services effectively on their websites means acknowledging patient’s uncertainty about treatment, fear of disclosure and questions about amenities, to name just a few.
+For example, I expect that for-profit organizations will present themselves as competent actors that have two advantages over the other ownership types: the efficiency of markets and a more holistic approach to care. I expect that non-profit organizations will discuss their seniority in the field and a focus on community. This leads me to my last hypothesis:
+
+\vspace{12pt}
+
+| **Hypothesis 4:** For-profit and non-profit organizations will use several repertoires when speaking of “patient” and “client”
+
+\vspace{12pt}
+
+## *Websites as sites of organizational speech*
+
+The study of mission statements as organizations’ moral orientation is ubiquitous in organizational research. @paxton2020 shows how displaying emotion in non-profit mission statements leads to increased donations and volunteership, while @bail2016 reveals how striking the right balance in number of topics allows for more engagement. Because online text data is an opportunity to see culture *in situ* [@bail2014], researchers have observed semantic divisions among actors in various markets including climate change [@wetts2020] and education [@haber2021]. @haber2021 finds that charter schools, as relatively new entrants to the educational market, leverage a common set of discursive symbols on their website that attract a particular clientele. The understanding of markets as discursive fields [@mohr1997] is attractive to researchers because it gets us closer to the cultural orientations of organizations. In step with this research, I use organizational websites to draw out the similarities, or lack thereof, between addiction treatment organizations of varying ownership types.
+
+# Data and Methods
+
+## *Data*
+
+Addiction treatment organization websites appeal to potential clients and families: the type of care they provide, how they view the client and the expertise of their practitioners. Undoubtedly, some website visitors do not take for granted what they read in mission statements. This is particularly true when corresponding treatment aggregators (eg., https://startyourrecovery.org, https://www.recovery.org) often appear among top searches. Because I am analyzing self-descriptions from websites, it is less likely that the information presentation is affecting user choice. However, this should have no bearing on organization’s use of information as a way to promote a unique collective identity toward the field as a whole. 
+
+\vspace{12pt}
+
+I use the National Survey of Substance Abuse Treatment Services (N-SSATS) provided by the Substance Abuse and Mental Health Services Administration (SAMHSA) to identify addiction treatment services in New York State. SAMHSA reports a response rate of 91% overall, and 95.1% in New York State. In the United-States, considerable differences in state legislation—namely around insurance coverage—means two sets of organizations in different states may be operating under different market constraints. I limit my analysis to New York State to ensure that all the observed organizations are comparable. Future research could systematically identify state difference in addiction treatment [@grogan2020] and extend this research to capture regional difference. Additionally, New York is a useful example state: it houses a large number of organizations and varied rural and urban settings. 
+
+\vspace{12pt}
+
+At the time of writing, SAMHSA identified 854 services as providing substance abuse treatment in New York State. N-SSATS provides an organization website for each surveyed service—if none are provided, I researched the organization myself using the service name and location. I was able to identify 740 services in total. I could not confidently associate a website with the remaining 114 services, so I dropped them out of the dataset. 547 services are non-profit, 126 are for-profit and 67 are public. Several services (observations in the N-SSATS) may be managed by the same organization and presented on the same website. I find 268 unique organizations and websites.
+
+## *Dependent Variable*
+
+For each of the 268 organizations, I manually explore the website and gather textual information. I focused on elements of presentation of self, including mission statements, organizational history pages, philosophy statement and landing pages. Each page is merged into one “document” containing all textual information for each organization. Each document is treated using standard textual analysis cleaning procedures such as stopword removal, special character removal and lemmatization. The resulting text is inherited by all services of a given organization. My final dataset contains 10,420 unique words. On average, documents contain 1,393 words, ranging from 18 words (a two sentence mission description) to 24,633 words (numerous pages). On average, I recover 1713 terms in non-profit websites, 1890 in for-profit websites and 966 on public websites. To ensure that my results are not skewed by very small or very large documents, I use the smallest document’s size as an independent term in my models henceforth.
+
+\vspace{12pt}
+
+[INSERT TABLE 1 HERE]
+
+\vspace{12pt}
+
+A standard procedure when comparing documents is to de-emphasize terms that appear often across every document, and instead highlight words that are less frequent but still appear throughout. In other words, I consider that two documents sharing the word “addiction”—a word that appears in every document—is not as important as two documents sharing the word “luxury”—a word appearing in a small portion of documents. To do so, I assign each word a term frequency - inverse document frequency (tf-idf) [@sparckjones1972] weight calculated as follows:
+
+\vspace{12pt}
+
+$$idf(term) = ln(\frac{n_{document}}{n_{documents\ containing\ term}})$$
+
+\vspace{12pt}
+
+$$tf-idf = n_{term} * idf_{term}$$
+
+\vspace{12pt}
+
+Cosine similarity with tf-idf weighting is consistently found to strike a good balance of  accuracy, efficiency and interpretability for document comparison [@sitikhu2019]. I produce a document to document matrix containing every possible pair of documents (740*740 = 547,600 pairs). Each pair is assigned a cosine similarity based on the angle between of each documents’ tf-idf weighted vector of words. The cosine similarity is represented by:
+
+\vspace{12pt}
+
+$$similarity = cos(\theta) = \frac{\sum_{i=1}^{n}A_iB_i}{\sqrt{\sum_{i=1}^{n}A_i}\sqrt{\sum_{i=1}^{n}B_i}}$$
+
+\vspace{12pt}
+
+where A_i  and B_i are components of vectors A and B respectively. The resulting score is how I operationalize the semantic similarity between two documents, ranging from 0 (least similar) to 1 (most similar). Given that the semantic similarity scores are skewed right, I log the semantic similarity measure. In addition, I remove any observations with are pairs of services in the same organization, given that they share the same text. In sum, my final dataset is a comparison of 271,672 pairs of services.
+
+## *Independent variables*
+
+Other factors are likely to be predictive of semantic similarity across organizations. One such factor is geographic distance—the farther away services are from each other, the less likely they are to confront similar issues of treatment and discuss them accordingly. To account for this, I measure the geographic distance between each pair of service using the longitude and latitude values provided by N-SSATS. In addition, I consider whether two services are both in one of the five counties that comprise New York City, since we might expect issues of addiction to be significantly different with the rest of the state. 
+
+\vspace{12pt}
+
+Another reasonable expectation is that service who both provide the same treatment will present themselves similarly. This is particularly salient in the current approach, considering the word for the treatment itself (e.g., residential, rehabilitation) may appear several times on the website. Consequently, I create a set of dummies which indicate if both services offer a particular type of treatment as indicated by the N-SSATS survey. 
+
+\vspace{12pt}
+
+Lastly, local demographic characteristics are also likely to affect what sort of language organizations decide the leverage. For many organizations, their clientele is local, and their language may be tailored to those experiences. To test this idea, I merge 2019 American Community Survey (ACS) data (U.S. Census Bureau 2019) and assign to each service the percentage individual on Medicaid, percentage poor and percentage white of the county they inhabit. I then take calculate the absolute difference between each pair. I recognize that these three measures do not fully capture the local nuances of addiction treatment. Nonetheless, Medicaid, income (and particularly poverty) and race all play an important role in addiction treatment, and as such represent a good test—albeit a coarse one—of my idea.
+
+\vspace{12pt}
+
+I used mixed-effects regression with ownership, geographic distance, treatment and county level fixed effects to model the change in semantic similarity among pairs of services. The model includes a random intercepts for each service in the pair, allowing me to model variability between services explicitly. A term indicating the word length of the least verbose service in the dyad is included to control for the relationship between website length and semantic similarity. All terms are standardized to represent standard deviation changes. I conducted a series of substantially relevant interactions and compared model fit using the Bayesian Information Criterion (BIC). The best fitting model included all terms and no interactions. All models and associated BIC’s are reported in Appendix B.
+
+## *Word collocation*
+
+To assess the content of collective speech, I focus my attention on the way patients and clients are defined by organizations on their website. To do so, I use the quanteda package available in R [@benoit2018] in three steps. First, I clean the text by removing stopwords, symbols, numbers. Second, I find every instance of the words “patient” and “client” including their variations (such as “patients” or “client’s”). Third, I select 10 words before and after each term. Quanteda allows researchers to select how long “words” should be defined as (otherwise known as n-grams). I allow the package to select n-grams up to 3 in length (i.e., “medically assisted treatment” and “lab” are both possible options). For each term in this window, I assign a log-likelihood of being part of a specific ownership type as opposed to the other two. Log-likelihood is defined as:
+
+\vspace{12pt}
+
+$$log-likelihood = 2*\sum{O_i*ln(\frac{O_i}{E_i})}$$
+
+\vspace{12pt}
+
+Where O is the observed frequency and E is the expected frequency [@dunning1993]. The resulting value tells me how likely it is for a specific word to be present in an ownership type corpus (e.g., for-profit) as opposed to all other documents (e.g., non-profit and public). Words that disproportionally appear in one ownership corpus compared to all other documents are given a high score. Words are then ranked by their score. I reviewed and culled the final list to remove nonsensical words and titles of organizations—both of which are necessarily high in value but not substantively interesting.
+
+# Results
+
+## *Predicting semantic similarity*
+
+Does semantic coherence differ by ownership type? Figure 3 shows the relationship between the model fixed effects and semantic similarity (the detailed model is also available in Appendix A). Figure 3 suggests that sharing for-profit ownership status is associated with greater semantic similarity. The same is true for services sharing public ownership status. Given two services, on average, sharing for-profit status is associated with an increase in semantic similarity of 0.07 standard deviations, relative to mixed statuses (public-for profit and public-non profit). The increase in semantic similarity is even larger for services sharing public status, which are on average 0.1 standard deviations more similar to each other than mixed statuses. 
+
+\vspace{12pt}
+
+[INSERT FIGURE 3 HERE]
+
+\vspace{12pt}
+
+In contrast, I find no relationship between sharing non-profit status and semantic similarity. Being non-profit does not seem to affect services’ self-presentation. In addition, I find no relationship between non-profit/for-profit pairs and semantic similarity. This rules out the idea that for-profits may imitate their more established non-profit peers.
+
+\vspace{12pt}
+
+I observe these relationships net of other factors that affect semantic similarity. A one standard deviation increase in geographic distance is associated with a 0.2 standard deviation decrease in semantic similarity—as we might expect, the farther apart two services are located from one another, the less likely they are to speak similarly (the quadratic term indicates that this effect becomes more severe as geographic distance increases). In addition, services in New York City tend to speak more similarly to one another. Offering the same treatments tends to have a positive effect on semantic similarity. For example, two services offering long-term residential care speak, on average, 0.1 standard deviations more similarly than services with different treatment offerings^1^.
+
+\vspace{12pt}
+
+Organizations recruit many of their clients from the local areas their services are embedded in. As a result, we might expect local demographic realities to be related to the way organizations present themselves. As expected, I find that the greater the difference in percent poor and percent white between two counties, the less similar the speech of two services embedded within them. Surprisingly, my model suggests that the greater the difference in Medicaid coverage between two counties, the greater the similarity between two services. One possible reason for this surprising finding is that nearly every service accepts Medicaid insurance, so that while the percent of the population eligible might change from county to county, all organizations already present themselves as available to Medicaid patients (although that may not always be their primary audience).
+
+\vspace{12pt}
+
+## *Exploring repertoires of speech*
+
+Given that, according to my model, for-profit and public services display coherent collective speech, I investigate the context around the keywords “patient” and “client” and find words most associated with each ownership type. I leave aside non-profits, which did not exhibit coherent collective speech^2^. Table 3 displays the terms most associated with for-profit and public ownership types, as measured by my log-likelihood measure.
+
+\vspace{12pt}
+
+The context around the word *patient* is similarly logistical for both types of ownership—but in two very different sets of ways. For for-profits, words around the keyword *patient* (first column of Table 3) inspire a sense of professionalism and management associated with modern services. References to Suboxone, a contemporary partial agonist medical treatment for opioid addiction, as well as psychotherapy describe what the patient may be receiving from treatment. Terms such as “disclosure”, “technique” and “authorization” paint the picture of a well-managed and orchestrated set of services. Other terms specific to for-profit organizations such as “guarantee” and “package” hint a consolidation of treatment and market logics.  
+
+\vspace{12pt}
+
+Words associated with public services and *patient* are similarly logistical. However, the words revealed by my model indicate where the services are located—namely, in larger hospital institutions. References to “emergency”, “hospital”, “unit” and “veteran” draw the patient’s attention to the breadth of services that can be accessed in the hospital. A nearly identical type of repertoire is deployed around the word *client*, with some returning words (“lab”, “video”) and some new terms that evoke that same inclusion in the larger hospital context.
+
+\vspace{12pt}
+
+While the words around both *client* and *patient* did not change much for public organizations, that is not the case of for-profit organizations. Instead, the repertoire utilized by for-profits shift from one keyword to the other. In the case of *client*, we see fewer logistical words and more terms that appeal to reader’s emotions such as “spiritual”, “emotional” and “journey”. For-profits are demonstrating their righteous commitment toward treatment when appealing to individuals as *clients.* 
+
+\vspace{12pt}
+
+In sum, my model finds that public organizations define both *patient* and *client* within the context of the hospital institution. Conversely, for-profit organizations leverage several discursive repertoires depending on the keyword being studied. This flexibility in language suggests that the nature of collective speaking is different from public and for-profit organizations. In the case of public organizations, the collective and distinct speech captured by my model may reflect institutional contexts that are intrinsic to public services. On the other hand, for-profits leverage several repertoires strategically, which may put them in a dominant position when defining the discursive parameters of the addiction field.
+
+\vspace{12pt}
+
+[INSERT TABLE 2 HERE]
+
+# Discussion
+
+The United States finds itself today in the midst of a major transformation in addiction: products abused, where they come from, medications used to treat, and who is treated have all changed significantly in the last few decades. The way addiction, patients, and addiction treatment are spoken about has changed concomitantly. Scholars have extensively documented how language shifts in response to demographic changes in addiction. We know, for example, that the public conversation on addiction changed from the criminal to the medical repertoire as the population of patients became whiter [@taylor2008;@netherland2016]. Shifts in language also exist in relationship to individual attitudes and behaviors, be it during the construction of patient’s family identity [@selbekk2016] or struggles for autonomy and privacy [@bourgois2000]. Language both shapes and is shaped by the addiction field.
+
+\vspace{12pt}
+
+The organizational landscape is changing equally rapidly. Increasingly, for-profit ownership is becoming an important feature of the addiction treatment market. Treatment offered by these organizations is often more expensive and of lesser quality; however, their use of specific language gives them an edge in attracting patients [@beetham2021]. Despite the importance of language for both organizations and addiction more broadly, we know strikingly little about how ownership relates to the deployment of discourse.
+
+\vspace{12pt}
+
+In this article, I knit together scholarship from new institutionalist theories, the sociology of moral markets and medicalization to determine whether new addiction treatment organizations discursively cohere in the face of heterogenous normative pressure. I suggest two possible mechanisms that may be taking place within the addiction field: a process of isomorphism characterized by a weak relationship between ownership and speech, and a moral market approach characterized by a strong relationship between for-profit ownership and speech. I hypothesize that organizations under the for-profit ownership model face disproportionate normative pressure and would consequently exhibit a strong coherence as expected by moral markets approaches. Using computational social-science methods to determine similarity in speech, I test this hypothesis by studying every addiction treatment service in New York State with an available website. Results demonstrate that for-profit and public organizations produce collective speech; non-profits do not; there is no evidence that for-profits imitate non-profit speech; and for-profits draw on several discursive repertoires. These findings hold even when controlling for other characteristics important to semantic similarity, including geographic distance, treatment offerings and county demographic characteristics.
+
+\vspace{12pt}
+
+In line with the moral markets literature, I find support for my first hypothesis that for-profits exhibit a coherent and multifaceted linguistic approach. My study suggests that for-profit organizations are not engaged in a typical isomorphic process. Faced with normative pressure from within and outside the field, they are not looking to non-profits for linguistic cues. More in line with expectations from the moral markets literature, I find that for-profits are speaking as a collective group distinct from the other two ownership types. My evidence also supports my fourth hypothesis, revealing that for-profit organizations are appealing to readers by meshing language of professionalism and discretion with reference to more emotional aspects of treatment. Not only are for-profit organizations speaking as a coherent group—they are doing so while effectively presenting several repertoires with which prospective readers may resonate [@mcdonnell2017].
+
+\vspace{12pt}
+
+Most surprisingly, I do not find evidence of coherent speech among nonprofits. My results do not support my second hypothesis that both public and non-profit ownership would be predictive of semantic similarity, but far less so than for-profit ownership. This may be explained by the particular position held by non-profits in the field of addiction. Non-profit organizations like Phoenix House are hallowed institutions intimately tied to their local area, whose history is archived and remembered [@bertin-mahieux]. They may be seen as unique organizations, rather than part of a non-profit category. As a result, they are likely to focus their speech on specific treatment and geographic idiosyncrasies rather than looking to one another to cultivate self-presentation.
+
+\vspace{12pt}
+
+On the other hand, public organizations are the most coherent group of the three ownership types compared. One possibility is that public organizations are also under strong normative pressures. Another possibility becomes clear by taking a look at the types of words used to appeal to patients and clients. As evidence for my third hypothesis, I find that public organizations use a single repertoire of language for both patient and client that contrasts with the variety used by for-profit organizations. This repertoire illustrates how public services are embedded in larger hospital institutions. In other words, what is driving similarity between public organizations is language intrinsic to the setting in which public addiction services exist. The signal for collective speech among public organizations is strong—but it may not have the same consequences as collective speech among for-profits. 
+
+\vspace{12pt}
+
+These results should give pause to analysts searching for isomorphic processes in collective speech. Ownership types are important predictors of how language clusters—but not equally so. As exemplified in other moralized markets [@livne2014], new for-profit entrants have introduced different values to the addiction treatment field. By applying pressure on these organizations to legitimize themselves, conditions were set for for-profits to further solidify their position as offering an alternative to care. In addition, for-profits may not imitate non-profits because there is no coherent model to imitate—only a set of standalone organizations.
+
+\vspace{12pt}
+
+By both producing more coherent language than their non-profit peers and leveraging several alternative repertoires that appeal directly to the reader, for-profit addiction organizations are in a position to negotiate future definitions of addiction. In particular, they have the opportunity to reconcile profit-seeking market values with existing conceptions of addiction care. This consolidation of market and treatment values may have important ramifications for structural inequities and health. This conceptual marriage is likely to yield an increasingly large gap in quality of and access to treatment. Patients who experience domination along class, gender, race and sexuality lines already have worse experiences with addiction treatment [@storbjork2011;@saloner2013]. For example, @saloner2013 show that black and Hispanic patients are far less likely to complete addiction treatment due to housing instability and providers’ lack of cultural competence. This widening gap will only serve to further reinforce these differences. This study thus highlights a particular way in which culture (embodied in collective speech) intersects with social structures to sustain systems of social inequity [@cogburn2019]. The growing field of structural inequality, health and culture has shown how individual behaviors, such as racist internet searches, can have a structural effect on health [@chae2015]. This study shows the potential for conceiving of culture as emerging among the organizations of a given field.
+
+\vspace{12pt}
+
+Future work should dig deeper into the consequences of collective speech for health outcomes. My current study is limited to New York state, but comparing this relationship across states should yield interesting insight. If cultural forces influence how organizations become central and successful in the market, then we could expect states where non-profit organizations have strong collective messaging to also exhibit fewer inequalities in quality of treatment. In addition, further comparisons beyond the United States could explore how a nation’s institutional arrangements and orientation toward addiction treatment marketing influences the quality of care provided. Access to quality healthcare is tied up in market constraints—a better understanding of how these constraints are culturally constructed is a first step toward revealing the power of culture in structuring health outcomes.
+
+\clearpage
+
+# NOTES
+^1^Interestingly, sharing both outpatient and intensive outpatient treatments is negatively associated with semantic similarity. Future research in the specific character of outpatient treatment is needed to explore this reverse relationship.
+
+\vspace{12pt}
+
+^2^Some words do have a higher log-likelihood of being used by non-profits; however, given that my mixed- model finds no evidence of similarity between non-profit services, these words are likely associated with particular non-profit organizations, rather than non-profit services as a whole.
+
+\clearpage
+
+# REFERENCES
+
+<!-- \linespread{2} -->
+\setstretch{1.2}
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+::: {#refs}
+
+:::
+
+\clearpage
+
+# TABLES
+
+```{r}
+table1 <- readRDS(paste0(path,"/figures and tables/table1.rds"))
+
+kable(table1, col.names = NULL, caption = "Descriptive characteristics of the data") %>% 
+  kable_styling(full_width = FALSE) %>% 
+  kable_classic_2() %>% 
+  group_rows("Field level",0,1) %>% 
+  group_rows("Ownership level",2,7) %>% 
+  group_rows("Discursive level",8,10) %>% 
+  kable_styling(latex_options = "hold_position")
+```
+
+```{r}
+table_2 <- readRDS(paste0(path,"/figures and tables/table2.rds"))
+
+kable(table_2, col.names = c("for-profit","public",
+                           "for-profit","public"),
+      caption = "Top neighboring words by keyword and ownership") %>%
+  kable_classic_2() %>%
+  add_header_above(c("Patient" = 2, "Client" = 2)) %>% 
+  kable_styling(latex_options = "scale_down")
+```
+
+\clearpage
+
+# FIGURES
+
+```{r, fig.cap = "\\textit{Facility operation - Percent, 2009-2019 (Source: N-SSATS 2019)}"}
+knitr::include_graphics(paste0(path,"/figures and tables/stacked_barchart.png"), 
+                        dpi = NA)
+```
+
+```{r, fig.cap = "\\textit{Expectations for the addiction field}"}
+knitr::include_graphics(paste0(path,"/figures and tables/scenarios.pdf"), 
+                        dpi = NA)
+```
+
+```{r, warning = F, message = F, fig.height = 10, fig.width = 10, fig.align = "center", fig.cap = "\\textit{Standardized Mixed-Model Coefficients}"}
+coefs <- readRDS(paste0(path,"/figures and tables/coefs.rds"))
+coefs
+```
+
+\clearpage
+
+\appendix
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}
+
+
+
+
+\renewcommand{\thesection}{A}
+
+\setcounter{page}{1}
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{A\arabic{table}}
+\renewcommand{\figurename}{Table}
+
+\setcounter{figure}{0}
+\renewcommand\thefigure{A\arabic{figure}}
+\renewcommand{\figurename}{Figure}
+
+
+\clearpage
+\pagenumbering{gobble}
+
+\vspace*{7cm}
+
+\begin{center}
+\begin{huge}
+Appendix A: Full mixed-effects models with additive terms
+\end{huge}
+\end{center}
+\vspace{3cm}
+
+\clearpage
+\pagenumbering{arabic} 
+
+\begin{table}[!htbp] \centering 
+  \caption{Mixed Models} 
+  \label{} 
+\tiny 
+\begin{tabular}{@{\extracolsep{0pt}}lccccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{5}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-6} 
+\\[-1.8ex] & \multicolumn{5}{c}{Semantic Similarity} \\ 
+\\[-1.8ex] & (1) & (2) & (3) & (4) & (5)\\ 
+\hline \\[-1.8ex] 
+ Both for-profit & 0.082$^{***}$ & 0.076$^{***}$ & 0.075$^{***}$ & 0.073$^{***}$ & 0.073$^{***}$ \\ 
+  & (0.028) & (0.028) & (0.028) & (0.028) & (0.028) \\ 
+  & & & & & \\ 
+ For-profit/Non-profit pair & $-$0.048$^{*}$ & $-$0.050$^{*}$ & $-$0.051$^{*}$ & $-$0.052$^{*}$ & $-$0.051$^{*}$ \\ 
+  & (0.027) & (0.027) & (0.028) & (0.028) & (0.027) \\ 
+  & & & & & \\ 
+ Both public & 0.096$^{***}$ & 0.100$^{***}$ & 0.101$^{***}$ & 0.104$^{***}$ & 0.104$^{***}$ \\ 
+  & (0.028) & (0.028) & (0.028) & (0.028) & (0.028) \\ 
+  & & & & & \\ 
+ Both non-profit & $-$0.038 & $-$0.040 & $-$0.040 & $-$0.043 & $-$0.043 \\ 
+  & (0.027) & (0.027) & (0.027) & (0.027) & (0.027) \\ 
+  & & & & & \\ 
+ Geographic distance &  & $-$0.262$^{***}$ & $-$0.219$^{***}$ & $-$0.217$^{***}$ & $-$0.209$^{***}$ \\ 
+  &  & (0.006) & (0.007) & (0.007) & (0.007) \\ 
+  & & & & & \\ 
+ Quadratic of geographic distance &  & 0.197$^{***}$ & 0.161$^{***}$ & 0.161$^{***}$ & 0.154$^{***}$ \\ 
+  &  & (0.006) & (0.007) & (0.007) & (0.007) \\ 
+  & & & & & \\ 
+ New York City &  &  & 0.040$^{***}$ & 0.040$^{***}$ & 0.026$^{***}$ \\ 
+  &  &  & (0.003) & (0.003) & (0.004) \\ 
+  & & & & & \\ 
+ Hospital inpatient &  &  &  & 0.139$^{***}$ & 0.139$^{***}$ \\ 
+  &  &  &  & (0.012) & (0.012) \\ 
+  & & & & & \\ 
+ Outpatient &  &  &  & $-$0.046$^{***}$ & $-$0.047$^{***}$ \\ 
+  &  &  &  & (0.005) & (0.005) \\ 
+  & & & & & \\ 
+ Residential &  &  &  & 0.071$^{***}$ & 0.071$^{***}$ \\ 
+  &  &  &  & (0.005) & (0.005) \\ 
+  & & & & & \\ 
+ Hospital inpatient detox &  &  &  & 0.004 & 0.004 \\ 
+  &  &  &  & (0.012) & (0.012) \\ 
+  & & & & & \\ 
+ Hospital inpatient treatment &  &  &  & 0.061$^{***}$ & 0.061$^{***}$ \\ 
+  &  &  &  & (0.012) & (0.012) \\ 
+  & & & & & \\ 
+ Outpatient detox &  &  &  & 0.046$^{***}$ & 0.047$^{***}$ \\ 
+  &  &  &  & (0.005) & (0.005) \\ 
+  & & & & & \\ 
+ Outpatient day treatment &  &  &  & 0.026$^{***}$ & 0.025$^{***}$ \\ 
+  &  &  &  & (0.008) & (0.008) \\ 
+  & & & & & \\ 
+ Intensive outpatient treatment &  &  &  & $-$0.008$^{***}$ & $-$0.008$^{***}$ \\ 
+  &  &  &  & (0.003) & (0.003) \\ 
+  & & & & & \\ 
+ Outpatient pharmaceutical treatment &  &  &  & 0.013$^{***}$ & 0.014$^{***}$ \\ 
+  &  &  &  & (0.003) & (0.003) \\ 
+  & & & & & \\ 
+ Regular outpatient treatment &  &  &  & 0.011$^{***}$ & 0.011$^{***}$ \\ 
+  &  &  &  & (0.003) & (0.003) \\ 
+  & & & & & \\ 
+ Residential detox &  &  &  & 0.020$^{**}$ & 0.020$^{**}$ \\ 
+  &  &  &  & (0.010) & (0.010) \\ 
+  & & & & & \\ 
+ Long-term residential &  &  &  & 0.106$^{***}$ & 0.106$^{***}$ \\ 
+  &  &  &  & (0.005) & (0.005) \\ 
+  & & & & & \\ 
+ Short-term residential &  &  &  & $-$0.003 & $-$0.003 \\ 
+  &  &  &  & (0.008) & (0.008) \\ 
+  & & & & & \\ 
+ Difference in pct medicaid coverage &  &  &  &  & 0.011$^{***}$ \\ 
+  &  &  &  &  & (0.004) \\ 
+  & & & & & \\ 
+ Difference in pct poverty &  &  &  &  & $-$0.016$^{***}$ \\ 
+  &  &  &  &  & (0.004) \\ 
+  & & & & & \\ 
+ Difference in pct white &  &  &  &  & $-$0.010$^{***}$ \\ 
+  &  &  &  &  & (0.002) \\ 
+  & & & & & \\ 
+ Length of smallest document in pair & 0.072$^{***}$ & 0.072$^{***}$ & 0.072$^{***}$ & 0.067$^{***}$ & 0.067$^{***}$ \\ 
+  & (0.002) & (0.002) & (0.002) & (0.002) & (0.002) \\ 
+  & & & & & \\ 
+ Constant & 0.152$^{***}$ & 0.147$^{***}$ & 0.177$^{***}$ & 0.622$^{***}$ & 0.611$^{***}$ \\ 
+  & (0.034) & (0.034) & (0.034) & (0.039) & (0.039) \\ 
+  & & & & & \\ 
+\hline \\[-1.8ex] 
+Observations & 271,672 & 271,672 & 271,672 & 271,672 & 271,672 \\ 
+Log Likelihood & $-$219,154.600 & $-$217,114.600 & $-$217,010.600 & $-$215,332.600 & $-$215,326.100 \\ 
+Akaike Inf. Crit. & 438,327.100 & 434,251.200 & 434,045.100 & 430,715.200 & 430,708.200 \\ 
+Bayesian Inf. Crit. & 438,421.800 & 434,366.800 & 434,171.300 & 430,978.000 & 431,002.500 \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{5}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+\end{tabular} 
+\end{table}
+
+\clearpage
+
+\vspace*{7cm}
+
+\begin{center}
+\begin{huge}
+Appendix B: Model fit for tested models
+\end{huge}
+\end{center}
+\vspace{3cm}
+
+\clearpage
+
+\renewcommand{\arraystretch}{2}
+
+```{r}
+bic_table <- readRDS(paste0(path,"/figures and tables/table3.rds"))
+
+kable(bic_table, col.names = c("model terms", "BIC values"), caption = "Fitting models and associated BIC values") %>% 
+  kable_styling(full_width = FALSE) %>% 
+  kable_classic_2() %>% 
+  kable_styling(latex_options = "scale_down")
+```
+
